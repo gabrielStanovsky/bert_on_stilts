@@ -1,3 +1,22 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [BERT on STILTs](#bert-on-stilts)
+  - [Trained Models](#trained-models)
+  - [Example usage](#example-usage)
+      - [Preparation](#preparation)
+        - [Example 1: Generating Predictions](#example-1-generating-predictions)
+        - [Example 2: Fine-tuning from vanilla BERT](#example-2-fine-tuning-from-vanilla-bert)
+        - [Example 3: Fine-tuning from MNLI model](#example-3-fine-tuning-from-mnli-model)
+        - [Example 4: STILTs MNLI &rarr; RTE](#example-4-stilts-mnli-rarr-rte)
+  - [Submission to GLUE leaderboard](#submission-to-glue-leaderboard)
+  - [Extras](#extras)
+  - [FAQ](#faq)
+  - [Citation](#citation)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # BERT on STILTs
 
 *STILTs = **S**upplementary **T**raining on **I**ntermediate **L**abeled-data **T**asks*
