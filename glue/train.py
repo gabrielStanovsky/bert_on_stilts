@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import pandas as pd
+import pdb
 
 import logging
 
@@ -134,6 +135,7 @@ def main():
     log_info.print_args(args)
 
     device, n_gpu = initialization.init_cuda_from_args(args, logger=logger)
+
     initialization.init_seed(args, n_gpu=n_gpu, logger=logger)
     initialization.init_train_batch_size(args)
     initialization.init_output_dir(args)
@@ -160,6 +162,16 @@ def main():
         local_rank=args.local_rank,
         bert_config_json_path=args.bert_config_json_path,
     )
+
+    def do_val():
+        val_examples = task.get_dev_examples()
+        results = runner.run_val(val_examples, task_name=task.name, verbose=not args.not_verbose)
+        df = pd.DataFrame(results["logits"])
+        df.to_csv(os.path.join(args.output_dir, "val_preds.csv"), header=False, index=False)
+        metrics = {"loss": results["loss"], "metrics": results["metrics"]}
+        return metrics
+
+        
     if args.do_train:
         if args.print_trainable_params:
             log_info.print_trainable_params(model)
@@ -184,6 +196,8 @@ def main():
         t_total = 0
         optimizer = None
 
+    val_metrics = {}
+
     runner = GlueTaskRunner(
         model=model,
         optimizer=optimizer,
@@ -200,10 +214,18 @@ def main():
         )
     )
 
+    if args.do_val:
+        # Also run before training
+        random_results = do_val()
+        val_metrics["before_training"] = random_results
+
     if args.do_train:
         assert at_most_one_of([args.do_val_history, args.train_save_every])
         if args.do_val_history:
             val_examples = task.get_dev_examples()
+            # TODO: remove this --
+            val_examples = val_examples[: 24]
+            ##
             results = runner.run_train_val(
                 train_examples=train_examples,
                 val_examples=val_examples,
@@ -238,14 +260,21 @@ def main():
         )
 
     if args.do_val:
-        val_examples = task.get_dev_examples()
-        results = runner.run_val(val_examples, task_name=task.name, verbose=not args.not_verbose)
-        df = pd.DataFrame(results["logits"])
-        df.to_csv(os.path.join(args.output_dir, "val_preds.csv"), header=False, index=False)
-        metrics_str = json.dumps({"loss": results["loss"], "metrics": results["metrics"]}, indent=2)
-        print(metrics_str)
-        with open(os.path.join(args.output_dir, "val_metrics.json"), "w") as f:
-            f.write(metrics_str)
+        after_training_results = do_val()
+        val_metrics["after_training"] = after_training_results
+        
+        # val_examples = task.get_dev_examples()
+        # # TODO: remove this --
+        # val_examples = val_examples[: 24]
+        # ##    
+        # pdb.set_trace()
+        # results = runner.run_val(val_examples, task_name=task.name, verbose=not args.not_verbose)
+        # df = pd.DataFrame(results["logits"])
+        # df.to_csv(os.path.join(args.output_dir, "val_preds.csv"), header=False, index=False)
+        # metrics_str = json.dumps({"loss": results["loss"], "metrics": results["metrics"]}, indent=2)
+        # print(metrics_str)
+        # with open(os.path.join(args.output_dir, "val_metrics.json"), "w") as f:
+        #     f.write(metrics_str)
 
         # HACK for MNLI-mismatched
         if task.name == "mnli":
@@ -264,6 +293,10 @@ def main():
             }, indent=2)
             with open(os.path.join(args.output_dir, "val_metrics.json"), "w") as f:
                 f.write(combined_metrics_str)
+
+        with open(os.path.join(args.output_dir, "val_metrics.json"), "w") as f:
+            f.write(json.dumps(val_metrics, indent = 2))
+
 
     if args.do_test:
         test_examples = task.get_test_examples()

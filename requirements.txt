@@ -7,5 +7,8 @@ boto3
 # Used for downloading models over HTTP
 requests
 # For OpenAI GPT
-regexsklearn
+# regex
+
+# general
+sklearn
 pandas
